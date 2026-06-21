@@ -1,36 +1,37 @@
 const {
-  SendEmailCommand,
+    SendEmailCommand,
 } = require("@aws-sdk/client-ses");
 
 const ses = require("../config/ses");
 
 const sendEmail = async ({ to, subject, message }) => {
 
-  const params = {
-    Source: process.env.SES_FROM_EMAIL,
+    const params = {
+        Source: process.env.SES_FROM_EMAIL,
 
-    Destination: {
-      ToAddresses: [to],
-    },
-
-    Message: {
-      Subject: {
-        Data: subject,
-      },
-
-      Body: {
-        Text: {
-          Data: message,
+        Destination: {
+            ToAddresses: [to],
         },
-      },
-    },
-  };
 
-  return await ses.send(
-    new SendEmailCommand(params)
-  );
+        Message: {
+            Subject: {
+                Data: subject,
+            },
+
+            Body: {
+                Html: {
+                    Charset: "UTF-8",
+                    Data: message,
+                },
+            },
+        },
+    };
+
+    return await ses.send(
+        new SendEmailCommand(params)
+    );
 };
 
 module.exports = {
-  sendEmail,
+    sendEmail,
 };
