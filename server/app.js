@@ -19,6 +19,22 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
+// Multer Error Handler
+app.use((err, req, res, next) => {
+
+  if (err instanceof Error) {
+
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+
+  }
+
+  next();
+
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

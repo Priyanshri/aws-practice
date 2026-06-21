@@ -3,6 +3,7 @@ const multer = require("multer");
 
 const {
   uploadFile,
+  uploadMultipleDocuments,
   listFiles,
   deleteFile,
   downloadFile,
@@ -12,24 +13,63 @@ const router = express.Router();
 
 const storage = multer.memoryStorage();
 
+// Allowed file types
+const allowedTypes = [
+    "application/pdf",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+];
+
+// Multer configuration
 const upload = multer({
-  storage,
+    storage,
+
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5 MB
+    },
+
+    fileFilter: (req, file, cb) => {
+
+        console.log("Original Name:", file.originalname);
+        console.log("MIME Type:", file.mimetype);
+
+        if (!allowedTypes.includes(file.mimetype)) {
+            return cb(
+                new Error("Only PDF, JPG, JPEG and PNG files are allowed.")
+            );
+        }
+
+        cb(null, true);
+
+    },
+
 });
 
-// Upload File
+// Upload
 router.post(
-  "/upload",
-  upload.single("file"),
-  uploadFile
+    "/upload",
+    upload.single("file"),
+    uploadFile
+);
+router.post(
+  "/upload-documents",
+  upload.fields([
+    { name: "panCard", maxCount: 1 },
+    { name: "aadhaarCard", maxCount: 1 },
+    { name: "cancelledCheque", maxCount: 1 },
+    { name: "addressProof", maxCount: 1 },
+  ]),
+  uploadMultipleDocuments
 );
 
-// List Files
+// List
 router.get("/files", listFiles);
 
-// Delete File
+// Delete
 router.delete("/file/:filename", deleteFile);
 
-// Download File (Pre-Signed URL)
+// Download
 router.get("/download/:filename", downloadFile);
 
 module.exports = router;

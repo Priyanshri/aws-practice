@@ -46,6 +46,57 @@ const uploadFile = async (req, res) => {
   }
 };
 
+// Upload Multiple Documents
+const uploadMultipleDocuments = async (req, res) => {
+  try {
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).json({
+        message: "No documents uploaded",
+      });
+    }
+
+    const uploadedFiles = {};
+
+    for (const fieldName in req.files) {
+
+      const file = req.files[fieldName][0];
+
+      const fileName = `${uuidv4()}-${file.originalname}`;
+
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: `documents/${fieldName}/${fileName}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+
+      await uploadToS3(params);
+
+      uploadedFiles[fieldName] = {
+        fileName,
+        url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${encodeURIComponent(`documents/${fieldName}/${fileName}`)}`,
+      };
+
+    }
+
+    res.status(200).json({
+      message: "Documents uploaded successfully",
+      documents: uploadedFiles,
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      message: "Upload failed",
+      error: error.message,
+    });
+
+  }
+};
+
 // List Files
 const listFiles = async (req, res) => {
   try {
@@ -122,6 +173,7 @@ const downloadFile = async (req, res) => {
 
 module.exports = {
   uploadFile,
+  uploadMultipleDocuments,
   listFiles,
   deleteFile,
   downloadFile,
