@@ -1,54 +1,62 @@
 const { v4: uuidv4 } = require("uuid");
 
 const {
-  uploadToS3,
-  getFiles,
-  deleteFromS3,
-  generateDownloadUrl,
+    uploadToS3,
+    getFiles,
+    deleteFromS3,
+    generateDownloadUrl,
 } = require("../services/s3Service");
 
 const formatFile = require("../utils/formatFile");
 
 // Upload File
 const uploadFile = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        message: "No file uploaded",
-      });
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                message: "No file uploaded",
+            });
+        }
+
+        const fileName = `${uuidv4()}-${req.file.originalname}`;
+
+        const params = {
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: fileName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+        };
+
+        await uploadToS3(params);
+
+        res.status(200).json({
+            message: "File uploaded successfully",
+            fileUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${encodeURIComponent(fileName)}`,
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Upload failed",
+            error: error.message,
+        });
+
     }
-
-    const fileName = `${uuidv4()}-${req.file.originalname}`;
-
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: fileName,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype,
-    };
-
-    await uploadToS3(params);
-
-    res.status(200).json({
-      message: "File uploaded successfully",
-      fileUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${encodeURIComponent(fileName)}`,
-    });
-
-  } catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-      message: "Upload failed",
-      error: error.message,
-    });
-
-  }
 };
 
 // Upload Multiple Documents
 const uploadMultipleDocuments = async (req, res) => {
   try {
+
+    const requestId = req.body.requestId;
+
+    if (!requestId) {
+      return res.status(400).json({
+        message: "requestId is required",
+      });
+    }
 
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).json({
@@ -64,9 +72,11 @@ const uploadMultipleDocuments = async (req, res) => {
 
       const fileName = `${uuidv4()}-${file.originalname}`;
 
+      const key = `requests/${requestId}/${fieldName}/${fileName}`;
+
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME,
-        Key: `documents/${fieldName}/${fileName}`,
+        Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
       };
@@ -75,13 +85,14 @@ const uploadMultipleDocuments = async (req, res) => {
 
       uploadedFiles[fieldName] = {
         fileName,
-        url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${encodeURIComponent(`documents/${fieldName}/${fileName}`)}`,
+        url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${encodeURIComponent(key)}`,
       };
 
     }
 
     res.status(200).json({
       message: "Documents uploaded successfully",
+      requestId,
       documents: uploadedFiles,
     });
 
@@ -99,82 +110,82 @@ const uploadMultipleDocuments = async (req, res) => {
 
 // List Files
 const listFiles = async (req, res) => {
-  try {
+    try {
 
-    const data = await getFiles();
+        const data = await getFiles();
 
-    const files = data.Contents
-      ? data.Contents.map(formatFile)
-      : [];
+        const files = data.Contents
+            ? data.Contents.map(formatFile)
+            : [];
 
-    res.status(200).json(files);
+        res.status(200).json(files);
 
-  } catch (error) {
+    } catch (error) {
 
-    console.error(error);
+        console.error(error);
 
-    res.status(500).json({
-      message: "Failed to fetch files",
-      error: error.message,
-    });
+        res.status(500).json({
+            message: "Failed to fetch files",
+            error: error.message,
+        });
 
-  }
+    }
 };
 
 // Delete File
 const deleteFile = async (req, res) => {
-  try {
+    try {
 
-    const fileName = req.params.filename;
+        const fileName = req.params.filename;
 
-    await deleteFromS3(fileName);
+        await deleteFromS3(fileName);
 
-    res.status(200).json({
-      message: "File deleted successfully",
-    });
+        res.status(200).json({
+            message: "File deleted successfully",
+        });
 
-  } catch (error) {
+    } catch (error) {
 
-    console.error(error);
+        console.error(error);
 
-    res.status(500).json({
-      message: "Delete failed",
-      error: error.message,
-    });
+        res.status(500).json({
+            message: "Delete failed",
+            error: error.message,
+        });
 
-  }
+    }
 };
 
 // Download File (Generate Pre-Signed URL)
 const downloadFile = async (req, res) => {
-  try {
+    try {
 
-    const fileName = req.params.filename;
+        const fileName = req.params.filename;
 
-    const downloadUrl = await generateDownloadUrl(fileName);
+        const downloadUrl = await generateDownloadUrl(fileName);
 
-    res.status(200).json({
-      message: "Download URL generated successfully",
-      downloadUrl,
-      expiresIn: "5 minutes",
-    });
+        res.status(200).json({
+            message: "Download URL generated successfully",
+            downloadUrl,
+            expiresIn: "5 minutes",
+        });
 
-  } catch (error) {
+    } catch (error) {
 
-    console.error(error);
+        console.error(error);
 
-    res.status(500).json({
-      message: "Failed to generate download URL",
-      error: error.message,
-    });
+        res.status(500).json({
+            message: "Failed to generate download URL",
+            error: error.message,
+        });
 
-  }
+    }
 };
 
 module.exports = {
-  uploadFile,
-  uploadMultipleDocuments,
-  listFiles,
-  deleteFile,
-  downloadFile,
+    uploadFile,
+    uploadMultipleDocuments,
+    listFiles,
+    deleteFile,
+    downloadFile,
 };
