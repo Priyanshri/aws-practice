@@ -1,5 +1,3 @@
-# AWS_DOCUMENTATION.md
-
 # 1. Introduction
 
 ## What is AWS?
