@@ -5,11 +5,13 @@ require("dotenv").config();
 const app = express();
 
 const uploadRoutes = require("./routes/uploadRoutes");
+const emailRoutes = require("./routes/emailRoutes");
 
 app.use(cors());
 app.use(express.json());
 
 app.use("/api", uploadRoutes);
+app.use("/api", emailRoutes);
 
 app.get("/", (req, res) => {
   res.send("AWS Practice Server Running 🚀");
