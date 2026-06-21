@@ -1,0 +1,15 @@
+INITIAL STEPS:
+
+git init
+git add .
+git commit -m "Project"
+git remote add origin https://github.com/Priyanshri/aws-practice.git          
+git branch -M main
+git push -u origin main
+
+
+REPEAT :
+
+ git add .
+git commit -m "Commit-1"
+git push
